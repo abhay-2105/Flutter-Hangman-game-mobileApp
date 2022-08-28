@@ -1,17 +1,35 @@
 import 'package:flutter/material.dart';
+import '../databse/db_helper.dart';
 
 class HighScore {
-  DateTime date;
+  String date;
   int score;
 
   HighScore(this.date, this.score);
 }
 
-List<HighScore> highScore = [];
+class HighScoreItems with ChangeNotifier {
+  List<HighScore> _items = [];
+  List<HighScore> get item {
+    _items = _items..sort((b, a) => a.score.compareTo(b.score));
+    return [..._items];
+  }
 
-List<HighScore> get sorted {
-  highScore = highScore..sort((b, a) => a.score.compareTo(b.score));
-  return highScore;
+  void addHighScore(date, score) {
+    final highScore = HighScore(date, score);
+    _items.add(highScore);
+    notifyListeners();
+  }
+
+  Future<List<HighScore>> fetchData() async {
+    final db = await DBHelper.database();
+    List<Map<String, dynamic>> table = await db.query('SCORE');
+    _items = [];
+    for (var item in table) {
+      _items.add(HighScore(item['date'], item['score']));
+    }
+    return [..._items];
+  }
 }
 
 List word = [

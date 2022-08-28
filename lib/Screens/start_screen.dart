@@ -1,10 +1,7 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:hangman/databse/db_helper.dart';
 import 'dummy_data.dart';
-
-// var len = Random().nextInt(word.length);
-// List sword = List.generate(len, (index) => "_");
 
 class StartScreen extends StatefulWidget {
   const StartScreen({Key? key}) : super(key: key);
@@ -14,8 +11,9 @@ class StartScreen extends StatefulWidget {
 }
 
 class _StartScreenState extends State<StartScreen> {
+  final _name = TextEditingController();
   late String stored;
-  int lives = 5;
+  int lives = 3;
   int score = 0;
   var index = 0;
   List sword = [];
@@ -40,7 +38,6 @@ class _StartScreenState extends State<StartScreen> {
     randomWord = word[randomIndex];
     sword = List.generate(randomWord.length, (index) => "_");
     stored = randomWord;
-
     print(randomWord);
     super.initState();
   }
@@ -52,7 +49,7 @@ class _StartScreenState extends State<StartScreen> {
 
   Widget underscore(String chr) {
     return Text(
-      chr + " ",
+      "$chr ",
       style: const TextStyle(
           // fontWeight: FontWeight.bold,
           color: Colors.white,
@@ -103,7 +100,6 @@ class _StartScreenState extends State<StartScreen> {
                               child: AlertDialog(
                                 backgroundColor:
                                     const Color.fromARGB(255, 29, 3, 142),
-                                // title: const Text('Alert'),
                                 content: SizedBox(
                                   height: 200,
                                   child: Column(
@@ -151,9 +147,8 @@ class _StartScreenState extends State<StartScreen> {
                               child: AlertDialog(
                                 backgroundColor:
                                     const Color.fromARGB(255, 29, 3, 142),
-                                // title: const Text('Alert'),
                                 content: SizedBox(
-                                  height: 180,
+                                  height: 250,
                                   child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceAround,
@@ -170,6 +165,15 @@ class _StartScreenState extends State<StartScreen> {
                                               fontFamily: "PatrickHand",
                                               fontSize: 40),
                                         ),
+                                        if (lives == 0)
+                                          TextFormField(
+                                            validator: (value) => value!.isEmpty
+                                                ? "please enter your name"
+                                                : null,
+                                            controller: _name,
+                                            decoration: const InputDecoration(
+                                                hintText: "Enter your name"),
+                                          ),
                                         IconButton(
                                             icon: const Icon(
                                               Icons.arrow_circle_right,
@@ -177,12 +181,17 @@ class _StartScreenState extends State<StartScreen> {
                                               color: Colors.white,
                                             ),
                                             onPressed: () {
+                                              if (_name.text.isEmpty &&
+                                                  lives == 0) {
+                                                return;
+                                              }
                                               newGame();
                                               Navigator.of(context).pop();
                                               if (lives == 0) {
-                                                HighScore hs = HighScore(
-                                                    DateTime.now(), score);
-                                                highScore.add(hs);
+                                                DBHelper.insert('SCORE', {
+                                                  'date': _name.text,
+                                                  'score': score
+                                                });
                                                 refresh();
                                               }
                                             })
@@ -210,73 +219,79 @@ class _StartScreenState extends State<StartScreen> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-          // appBar: AppBar(
-          //   title: const Text("HANGMAN"),
-          // ),
+          resizeToAvoidBottomInset: false,
           backgroundColor: Colors.deepPurple.shade900,
-          body: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 20, 10, 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 20, 10, 20),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height -
+                    40 -
+                    MediaQuery.of(context).padding.top,
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    IconButton(
-                      onPressed: (() {
-                        Navigator.of(context).pop();
-                      }),
-                      icon: const Icon(
-                        Icons.home,
-                        size: 35,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      score.toString(),
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 35,
-                          fontFamily: "PatrickHand"),
-                    ),
-                    Stack(children: [
-                      const Icon(
-                        Icons.favorite,
-                        size: 35,
-                        color: Colors.white,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(13, 6, 0, 0),
-                        child: Text(
-                          lives.toString(),
-                          style: const TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.bold),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          onPressed: (() {
+                            Navigator.of(context).pop();
+                          }),
+                          icon: const Icon(
+                            Icons.home,
+                            size: 35,
+                            color: Colors.white,
+                          ),
                         ),
-                      )
-                    ])
+                        Text(
+                          score.toString(),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 35,
+                              fontFamily: "PatrickHand"),
+                        ),
+                        Stack(children: [
+                          const Icon(
+                            Icons.favorite,
+                            size: 35,
+                            color: Colors.white,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(13, 6, 0, 0),
+                            child: Text(
+                              lives.toString(),
+                              style: const TextStyle(
+                                  fontSize: 17, fontWeight: FontWeight.bold),
+                            ),
+                          )
+                        ])
+                      ],
+                    ),
+                    images[index],
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [...sword.map((e) => underscore(e))],
+                      ),
+                    ),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      itemCount: 26,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                              mainAxisSpacing: 10, crossAxisCount: 7),
+                      itemBuilder: (context, index) {
+                        return Row(children: [
+                          createButton(alphabets.keys.toList()[index])
+                        ]);
+                      },
+                    )
                   ],
                 ),
-                images[index],
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [...sword.map((e) => underscore(e))],
-                  ),
-                ),
-                GridView.builder(
-                  shrinkWrap: true,
-                  itemCount: 26,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      mainAxisSpacing: 10, crossAxisCount: 7),
-                  itemBuilder: (context, index) {
-                    return Row(children: [
-                      createButton(alphabets.keys.toList()[index])
-                    ]);
-                  },
-                )
-              ],
+              ),
             ),
           )),
     );
